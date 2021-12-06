@@ -1,6 +1,7 @@
 import { Delaunay } from "d3-delaunay";
 import { memo, useMemo, useState } from "react";
 import useSWR from "swr";
+import { BaseMapTilesSVG } from "./CivMap";
 import { Tooltip } from "./Tooltip";
 import { isStation, parseTsv, uniq, World, XyZ, XZ } from "./World";
 
@@ -66,6 +67,8 @@ export const RailMap = memo(function Map(props: {
 	const scale = bounds0[3] / 50;
 	const voroStroke = 0.05 * scale;
 
+	const boundsMargin = proj.boundsWithMargin(scale);
+
 	const voroPolys = useMemo(() => {
 		const delaunay = Delaunay.from(
 			nodesArr.map((n) => [
@@ -83,16 +86,21 @@ export const RailMap = memo(function Map(props: {
 	}, [nodesArr, proj, scale, voroStroke]);
 
 	return (
-		<svg
-			width="100%"
-			height="80vh"
-			viewBox={proj.boundsWithMargin(scale).join(" ")}
-		>
+		<svg width="100%" height="80vh" viewBox={boundsMargin.join(" ")}>
+			{proj instanceof RealProjection && (
+				<g opacity={0.3} filter="grayscale(1)">
+					<BaseMapTilesSVG
+						baseMapId="terrain"
+						bounds={boundsMargin}
+						zoom={-4} // TODO calculate zoom from scale
+					/>
+				</g>
+			)}
 			{nodesArr.map((node) => (
 				<polygon
 					points={voroPolys[node.id].map(([x, z]) => x + "," + z).join(" ")}
-					fill={"blue"}
-					fillOpacity={0.3}
+					fill={"black"}
+					fillOpacity={0.1 * node.regions.length}
 					stroke="black"
 					strokeWidth={voroStroke}
 					onMouseMove={() => onHoverRegion(node.id)}

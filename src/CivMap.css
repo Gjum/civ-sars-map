@@ -1,0 +1,4 @@
+.civmap-tiles image {
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+}
