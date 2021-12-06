@@ -18,7 +18,7 @@ export function App() {
 	const [tooltip, setTooltip] = useState<TooltipProps | null>(null);
 
 	if (!world) {
-		return <div className="App">Loading ...</div>;
+		return <div className="App">Loading rails ...</div>;
 	}
 
 	const { nodes } = world;
