@@ -1,7 +1,16 @@
-export type World = { nodes: Record<string, Node> };
+export type XZ = [number, number];
+export type XyZ = { x: number; y?: number; z: number };
+
+export interface RailNode {
+	id: string;
+	location: XyZ;
+	regions: string[];
+}
+
+export type World = { nodes: Record<string, RailNode> };
 
 export function parseTsv(tsv: string | undefined): World | undefined {
-	const nodes: Record<string, Node> = {};
+	const nodes: Record<string, RailNode> = {};
 
 	if (!tsv) return undefined;
 
@@ -41,12 +50,6 @@ export function parseTsv(tsv: string | undefined): World | undefined {
 	});
 
 	return { nodes };
-}
-
-export interface Node {
-	id: string;
-	location: { x: number; y?: number; z: number };
-	regions: string[];
 }
 
 export function uniq<T extends string | number>(arr: T[]) {
