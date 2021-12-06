@@ -9,6 +9,8 @@ export interface RailNode {
 
 export type World = { nodes: Record<string, RailNode> };
 
+export const isStation = (node: RailNode) => last(node.regions) === node.id;
+
 export function parseTsv(tsv: string | undefined): World | undefined {
 	const nodes: Record<string, RailNode> = {};
 
@@ -38,7 +40,7 @@ export function parseTsv(tsv: string | undefined): World | undefined {
 			const location = { x: x!, y, z: z! };
 
 			const regions = uniq(
-				regionHeaders.map((h) => row[cols[h]]).filter((c) => c)
+				regionHeaders.map((h) => row[cols[h]]).filter((c) => c && c !== "-")
 			);
 
 			const id = row[cols.Name];
@@ -55,4 +57,8 @@ export function parseTsv(tsv: string | undefined): World | undefined {
 export function uniq<T extends string | number>(arr: T[]) {
 	const seen = {} as Record<T, number>;
 	return arr.filter((e) => (seen[e] = (seen[e] || 0) + 1) < 2);
+}
+
+function last<T>(a: T[]): T | undefined {
+	return a[a.length - 1];
 }

@@ -2,7 +2,7 @@ import { Delaunay } from "d3-delaunay";
 import { memo, useMemo, useState } from "react";
 import useSWR from "swr";
 import { Tooltip } from "./Tooltip";
-import { parseTsv, uniq, World, XZ, XyZ } from "./World";
+import { isStation, parseTsv, uniq, World, XyZ, XZ } from "./World";
 
 const tsvUrl =
 	"https://docs.google.com/spreadsheets/d/1zYh7a0l1Faa05buJpwo1HNeP538MA9BxAm643n0U7tY/export?gid=0&format=tsv";
@@ -15,14 +15,15 @@ export function App() {
 	);
 	const world = useMemo(() => parseTsv(tsv), [tsv]);
 
-	const [hoverNode, onHoverNode] = useState<string | null>(null);
-	const [hoverRegion, onHoverRegion] = useState<string | null>(null);
+	const [hoverNodeId, onHoverNode] = useState<string | null>(null);
+	const [hoverRegionId, onHoverRegion] = useState<string | null>(null);
 
 	if (!world) {
 		return <div className="App">Loading rails ...</div>;
 	}
 
 	const { nodes } = world;
+	const hoverNode = world.nodes[hoverNodeId || hoverRegionId || null!];
 
 	return (
 		<div className="App">
@@ -30,10 +31,15 @@ export function App() {
 				<p>found {Object.keys(nodes).length} nodes</p>
 				<RailMap {...{ world, onHoverNode, onHoverRegion }} />
 				<pre>{JSON.stringify(nodes, null, 2)}</pre>
-				{hoverNode ? (
-					<Tooltip>{hoverNode}</Tooltip>
-				) : hoverRegion ? (
-					<Tooltip>{hoverRegion}</Tooltip>
+				{hoverNodeId ? (
+					<Tooltip>
+						{hoverNodeId} ({isStation(hoverNode) ? "Station" : "Junction"}
+						)
+						<br />
+						{isStation(hoverNode) && `/dest $ ${hoverNode.regions.join(" ")}`}
+					</Tooltip>
+				) : hoverRegionId ? (
+					<Tooltip>{hoverNode.regions.join(" ")}</Tooltip>
 				) : null}
 			</div>
 		</div>
