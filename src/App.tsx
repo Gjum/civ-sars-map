@@ -1,7 +1,7 @@
 import { Delaunay } from "d3-delaunay";
 import { memo, useMemo, useState } from "react";
 import useSWR from "swr";
-import { Tooltip, TooltipProps } from "./Tooltip";
+import { Tooltip } from "./Tooltip";
 import { parseTsv, uniq, World, XZ, XyZ } from "./World";
 
 const tsvUrl =
@@ -15,7 +15,8 @@ export function App() {
 	);
 	const world = useMemo(() => parseTsv(tsv), [tsv]);
 
-	const [tooltip, setTooltip] = useState<TooltipProps | null>(null);
+	const [hoverNode, onHoverNode] = useState<string | null>(null);
+	const [hoverRegion, onHoverRegion] = useState<string | null>(null);
 
 	if (!world) {
 		return <div className="App">Loading rails ...</div>;
@@ -27,9 +28,13 @@ export function App() {
 		<div className="App">
 			<div>
 				<p>found {Object.keys(nodes).length} nodes</p>
-				<RailMap world={world} setTooltip={setTooltip} />
+				<RailMap {...{ world, onHoverNode, onHoverRegion }} />
 				<pre>{JSON.stringify(nodes, null, 2)}</pre>
-				{tooltip && <Tooltip {...tooltip} />}
+				{hoverNode ? (
+					<Tooltip>{hoverNode}</Tooltip>
+				) : hoverRegion ? (
+					<Tooltip>{hoverRegion}</Tooltip>
+				) : null}
 			</div>
 		</div>
 	);
@@ -37,9 +42,10 @@ export function App() {
 
 export const RailMap = memo(function Map(props: {
 	world: World;
-	setTooltip: (t: TooltipProps | null) => void;
+	onHoverNode: (id: string | null) => void;
+	onHoverRegion: (id: string | null) => void;
 }) {
-	const { setTooltip, world } = props;
+	const { onHoverNode, onHoverRegion, world } = props;
 	const { nodes } = world;
 
 	const nodesArr = useMemo(() => Object.values(nodes), [nodes]);
@@ -63,7 +69,6 @@ export const RailMap = memo(function Map(props: {
 		);
 		const voroBounds = proj.boundsWithMargin(scale + voroStroke);
 		const voronoi = delaunay.voronoi(voroBounds);
-		console.log(voronoi);
 		const voroPolys: Record<string, XZ[]> = {};
 		nodesArr.forEach(
 			(node, i) => (voroPolys[node.id] = voronoi.cellPolygon(i) as XZ[])
@@ -76,14 +81,16 @@ export const RailMap = memo(function Map(props: {
 			width="100%"
 			height="80vh"
 			viewBox={proj.boundsWithMargin(scale).join(" ")}
-			style={{ backgroundColor: "lavender" }}
 		>
 			{nodesArr.map((node) => (
 				<polygon
 					points={voroPolys[node.id].map(([x, z]) => x + "," + z).join(" ")}
-					fill="rgba(0,0,0,0.3)"
+					fill={"blue"}
+					fillOpacity={0.3}
 					stroke="black"
 					strokeWidth={voroStroke}
+					onMouseMove={() => onHoverRegion(node.id)}
+					onMouseLeave={() => onHoverRegion(null)}
 					key={node.id}
 				/>
 			))}
@@ -95,8 +102,8 @@ export const RailMap = memo(function Map(props: {
 					fill="red"
 					stroke="none"
 					onClick={() => console.log("clicked", node)}
-					onMouseMove={(e) => setTooltip({ e, children: <div>{node.id}</div> })}
-					onMouseLeave={() => setTooltip(null)}
+					onMouseMove={() => onHoverNode(node.id)}
+					onMouseLeave={() => onHoverNode(null)}
 					key={node.id}
 				/>
 			))}
