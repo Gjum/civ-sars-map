@@ -1,9 +1,8 @@
-import { Delaunay } from "d3-delaunay";
 import { memo, useMemo, useState } from "react";
 import useSWR from "swr";
 import { BaseMapTilesSVG } from "./CivMap";
 import { Tooltip } from "./Tooltip";
-import { isStation, parseTsv, uniq, World, XyZ, XZ } from "./World";
+import { isStation, parseTsv, uniq, World, XyZ } from "./World";
 
 const tsvUrl =
 	"https://docs.google.com/spreadsheets/d/1zYh7a0l1Faa05buJpwo1HNeP538MA9BxAm643n0U7tY/export?gid=0&format=tsv";
@@ -52,38 +51,21 @@ export const RailMap = memo(function Map(props: {
 	onHoverNode: (id: string | null) => void;
 	onHoverRegion: (id: string | null) => void;
 }) {
-	const { onHoverNode, onHoverRegion, world } = props;
+	const { onHoverNode, world } = props;
 	const { nodes } = world;
 
 	const nodesArr = useMemo(() => Object.values(nodes), [nodes]);
 
 	const proj = useMemo(() => {
-		return new RealProjection(nodesArr);
+		return new GridProjection(nodesArr);
 		// return new GridProjection(nodesArr);
 	}, [nodesArr]);
 
 	const bounds0 = proj.boundsWithMargin(0);
 	// point size
 	const scale = bounds0[3] / 50;
-	const voroStroke = 0.05 * scale;
 
 	const boundsMargin = proj.boundsWithMargin(scale);
-
-	const voroPolys = useMemo(() => {
-		const delaunay = Delaunay.from(
-			nodesArr.map((n) => [
-				proj.projectX(n.location.x),
-				proj.projectZ(n.location.z),
-			])
-		);
-		const voroBounds = proj.boundsWithMargin(scale + voroStroke);
-		const voronoi = delaunay.voronoi(voroBounds);
-		const voroPolys: Record<string, XZ[]> = {};
-		nodesArr.forEach(
-			(node, i) => (voroPolys[node.id] = voronoi.cellPolygon(i) as XZ[])
-		);
-		return voroPolys;
-	}, [nodesArr, proj, scale, voroStroke]);
 
 	return (
 		<svg width="100%" height="80vh" viewBox={boundsMargin.join(" ")}>
@@ -96,18 +78,6 @@ export const RailMap = memo(function Map(props: {
 					/>
 				</g>
 			)}
-			{nodesArr.map((node) => (
-				<polygon
-					points={voroPolys[node.id].map(([x, z]) => x + "," + z).join(" ")}
-					fill={"black"}
-					fillOpacity={0.1 * node.regions.length}
-					stroke="black"
-					strokeWidth={voroStroke}
-					onMouseMove={() => onHoverRegion(node.id)}
-					onMouseLeave={() => onHoverRegion(null)}
-					key={node.id}
-				/>
-			))}
 			{nodesArr.map((node) => (
 				<circle
 					cx={proj.projectX(node.location.x)}
